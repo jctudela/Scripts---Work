@@ -1,0 +1,9 @@
+#!/bin/sh
+
+#modify desktop background plist
+defaults write /Users/(USERNAME)/Library/Preferences/com.apple.desktop Background '{default = {ImageFilePath = "/path/to/file.jpg"; };}'
+
+#give loaner ownership of plist
+chown loaner /Users/(USERNAME)/Library/Preferences/com.apple.desktop.plist
+
+exit 0
