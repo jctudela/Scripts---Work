@@ -1,0 +1,5 @@
+#!/bin/sh
+
+/Library/Application\ Support/Adobe/Flash\ Player\ Install\ Manager/fpsaud -setUpdateMode 2
+
+exit 0
