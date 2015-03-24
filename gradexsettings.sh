@@ -4,11 +4,6 @@
 
 /usr/bin/profiles -D -f
 
-#Moving network settings
-
-#mv /Library/Preferences/SystemConfiguration/NetworkInterfaces.plist /Library/Preferences/SystemConfiguration/NetworkInterfaces.plist.old
-#mv /Library/Preferences/SystemConfiguration/preferences.plist /Library/Preferences/SystemConfiguration/preferences.plist.old
-
 #Turning Airport off/on and make sure service is enabled
 
 networksetup -setairportpower Wi-Fi off; networksetup -setairportpower Wi-Fi on
@@ -25,6 +20,9 @@ pmset sleep 0 disksleep 0 displaysleep 0 halfdim 0
 
 defaults write /Library/Preferences/com.apple.Bluetooth.plist BluetoothAutoSeekKeyboard 0
 defaults write /Library/Preferences/com.apple.Bluetooth.plist BluetoothAutoSeekPointingDevice 0
+
+#Set auto login for GradEx user
+defaults write /Library/Preferences/com.apple.loginwindow autoLoginUser "gradex"
 
 #Disable Screensaver
 #First grab the system's uuid
