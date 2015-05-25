@@ -1,0 +1,120 @@
+#!/bin/sh
+
+###
+# First Boot Script for OCAD-owned laptop loaner computers
+###
+
+
+#Set time zone
+/usr/sbin/systemsetup -settimezone America/Toronto
+/usr/sbin/systemsetup -setusingnetworktime on
+/usr/sbin/systemsetup -gettime
+/usr/sbin/systemsetup -gettimezone
+
+#Let it catch up
+sleep 10
+
+
+# make FireWire networking inactive
+/usr/sbin/networksetup -setnetworkserviceenabled FireWire off
+
+
+#Setting power to sleep at 3 hours, sleep the display at 60 minutes, half dim at 15 mins of inactivity while on charger
+pmset -c sleep 180 disksleep 0 displaysleep 60 halfdim 15
+
+
+#Setting power to sleep at 1 hour, sleep the display at 45 minutes, half dim at 10 mins of inactivity while on charger
+pmset -c sleep 60 disksleep 0 displaysleep 45 halfdim 10
+
+
+#Create directory to be used for admin data
+mkdir /Library/Admin/data
+
+
+#Write list of installed Applications to /Library/Admin/data
+ls /Applications/ > /Library/Admin/data/list.csv
+
+
+# Sets the "Show scroll bars" setting (in System Preferences: General)
+# to "Always" in your Mac's default user template and for all existing users.
+# Checks the system default user template for the presence of 
+# the Library/Preferences directory. If the directory is not found, 
+# it is created and then the "Show scroll bars" setting (in System 
+# Preferences: General) is set to "Always".
+
+for USER_TEMPLATE in "/System/Library/User Template"/*
+  do
+     if [ ! -d "${USER_TEMPLATE}"/Library/Preferences ]
+      then
+        mkdir -p "${USER_TEMPLATE}"/Library/Preferences
+     fi
+     if [ ! -d "${USER_TEMPLATE}"/Library/Preferences/ByHost ]
+      then
+        mkdir -p "${USER_TEMPLATE}"/Library/Preferences/ByHost
+     fi
+     if [ -d "${USER_TEMPLATE}"/Library/Preferences/ByHost ]
+      then
+        defaults write "${USER_TEMPLATE}"/Library/Preferences/.GlobalPreferences AppleShowScrollBars -string Always
+     fi
+  done
+  
+  
+# Determine OS version and build version
+# as part of the following actions to 
+# disable the iCloud pop-up window
+osvers=$(sw_vers -productVersion | awk -F. '{print $2}')
+sw_vers=$(sw_vers -productVersion)
+
+# Checks first to see if the Mac is running 10.7.0 or higher. 
+# If so, the script checks the system default user template
+# for the presence of the Library/Preferences directory.
+# If the directory is not found, it is created and then the
+# iCloud pop-up settings are set to be disabled.
+if [[ ${osvers} -ge 7 ]]; then
+
+ for USER_TEMPLATE in "/System/Library/User Template"/*
+  do
+    defaults write "${USER_TEMPLATE}"/Library/Preferences/com.apple.SetupAssistant DidSeeCloudSetup -bool TRUE
+    defaults write "${USER_TEMPLATE}"/Library/Preferences/com.apple.SetupAssistant GestureMovieSeen none
+    defaults write "${USER_TEMPLATE}"/Library/Preferences/com.apple.SetupAssistant LastSeenCloudProductVersion "${sw_vers}"
+  done
+  
+  
+# Turn off DS_Store file creation on network volumes
+defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/com.apple.desktopservices DSDontWriteNetworkStores true
+
+
+# Configure Finder to use Column View
+defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/com.apple.finder "AlwaysOpenWindowsInColumnView" -bool true
+
+
+# Turn SSH on
+systemsetup -setremotelogin on
+
+
+# Turn off Gatekeeper
+spctl --master-disable 
+  
+  
+#Enable Reduce Transparency for performance boost in Yosemite
+defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/com.apple.universalaccess.plist  reduceTransparency 1  
+
+
+
+###AM Section###
+#Send heartbeat
+/Library/Application\ Support/LANrev\ Agent/LANrev\ Agent.app/Contents/MacOS/LANrev\ Agent --SendHeartbeat
+
+#Send inventory
+/Library/Application\ Support/LANrev\ Agent/LANrev\ Agent.app/Contents/MacOS/LANrev\ Agent --SendInventory
+
+#Check for packages
+/Library/Application\ Support/LANrev\ Agent/LANrev\ Agent.app/Contents/MacOS/LANrev\ Agent --SDCheck
+
+
+#and because Mavericks/Yosemite are jerks
+sudo killall cfprefsd
+
+
+# Since this is just a first-boot, make script self-destruct
+srm $0
