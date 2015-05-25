@@ -1,0 +1,121 @@
+#!/bin/sh
+
+###
+# First Boot Script for ACS-Managed computers
+###
+
+
+#Turning Airport off and make sure service is enabled
+#This is useful for ACS-Managed computers that must be on ethernet at all times
+networksetup -setairportpower Wi-Fi off; networksetup -setairportpower Wi-Fi off
+networksetup -setnetworkserviceenabled Wi-Fi off
+
+
+#Disable "Remember this network" for Airport
+/usr/libexec/airportd prefs RememberRecentNetworks=NO
+
+
+#Setting power to sleep at 2 hours, sleep the display at 30 minutes, half dim at 15 mins of inactivity
+pmset sleep 120 disksleep 0 displaysleep 30 halfdim 15
+
+
+#Disabling Blueooth from nagging if keyboard/mouse are not found
+defaults write /Library/Preferences/com.apple.Bluetooth.plist BluetoothAutoSeekKeyboard 0
+defaults write /Library/Preferences/com.apple.Bluetooth.plist BluetoothAutoSeekPointingDevice 0
+
+
+#and because Mavericks/Yosemite are jerks
+sudo killall cfprefsd
+
+
+#Create directory to be used for admin data
+mkdir /Library/Admin/data
+
+
+#Write list of installed Applications to /Library/Admin/data
+ls /Applications/ > /Library/Admin/data/list.csv
+
+
+# Set the login window to name and password
+defaults write /Library/Preferences/com.apple.loginwindow SHOWFULLNAME -bool true
+
+
+# Sets the "Show scroll bars" setting (in System Preferences: General)
+# to "Always" in your Mac's default user template and for all existing users.
+# Checks the system default user template for the presence of 
+# the Library/Preferences directory. If the directory is not found, 
+# it is created and then the "Show scroll bars" setting (in System 
+# Preferences: General) is set to "Always".
+
+for USER_TEMPLATE in "/System/Library/User Template"/*
+  do
+     if [ ! -d "${USER_TEMPLATE}"/Library/Preferences ]
+      then
+        mkdir -p "${USER_TEMPLATE}"/Library/Preferences
+     fi
+     if [ ! -d "${USER_TEMPLATE}"/Library/Preferences/ByHost ]
+      then
+        mkdir -p "${USER_TEMPLATE}"/Library/Preferences/ByHost
+     fi
+     if [ -d "${USER_TEMPLATE}"/Library/Preferences/ByHost ]
+      then
+        defaults write "${USER_TEMPLATE}"/Library/Preferences/.GlobalPreferences AppleShowScrollBars -string Always
+     fi
+  done
+  
+  
+# Determine OS version and build version
+# as part of the following actions to 
+# disable the iCloud pop-up window
+osvers=$(sw_vers -productVersion | awk -F. '{print $2}')
+sw_vers=$(sw_vers -productVersion)
+
+# Checks first to see if the Mac is running 10.7.0 or higher. 
+# If so, the script checks the system default user template
+# for the presence of the Library/Preferences directory.
+# If the directory is not found, it is created and then the
+# iCloud pop-up settings are set to be disabled.
+if [[ ${osvers} -ge 7 ]]; then
+
+ for USER_TEMPLATE in "/System/Library/User Template"/*
+  do
+    defaults write "${USER_TEMPLATE}"/Library/Preferences/com.apple.SetupAssistant DidSeeCloudSetup -bool TRUE
+    defaults write "${USER_TEMPLATE}"/Library/Preferences/com.apple.SetupAssistant GestureMovieSeen none
+    defaults write "${USER_TEMPLATE}"/Library/Preferences/com.apple.SetupAssistant LastSeenCloudProductVersion "${sw_vers}"
+  done
+  
+  
+# Turn off DS_Store file creation on network volumes
+defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/com.apple.desktopservices DSDontWriteNetworkStores true
+
+
+# Configure Finder to use Column View
+defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/com.apple.finder "AlwaysOpenWindowsInColumnView" -bool true
+
+
+# Turn SSH on
+systemsetup -setremotelogin on
+
+
+# Turn off Gatekeeper
+spctl --master-disable 
+  
+  
+#Enable Reduce Transparency for performance boost in Yosemite
+defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/com.apple.universalaccess.plist  reduceTransparency 1  
+
+
+
+###AM Section###
+#Send heartbeat
+/Library/Application\ Support/LANrev\ Agent/LANrev\ Agent.app/Contents/MacOS/LANrev\ Agent --SendHeartbeat
+
+#Send inventory
+/Library/Application\ Support/LANrev\ Agent/LANrev\ Agent.app/Contents/MacOS/LANrev\ Agent --SendInventory
+
+#Check for packages
+/Library/Application\ Support/LANrev\ Agent/LANrev\ Agent.app/Contents/MacOS/LANrev\ Agent --SDCheck
+
+
+# Since this is just a first-boot, make script self-destruct
+srm $0
