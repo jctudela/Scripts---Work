@@ -5,6 +5,19 @@
 ###
 
 
+#Set time zone
+/usr/sbin/systemsetup -settimezone America/Toronto
+/usr/sbin/systemsetup -setusingnetworktime on
+/usr/sbin/systemsetup -gettime
+/usr/sbin/systemsetup -gettimezone
+
+#Let it catch up
+sleep 10
+
+# make FireWire networking inactive
+/usr/sbin/networksetup -setnetworkserviceenabled FireWire off
+
+
 #Turning Airport off and make sure service is enabled
 #This is useful for ACS-Managed computers that must be on ethernet at all times
 networksetup -setairportpower Wi-Fi off; networksetup -setairportpower Wi-Fi off
@@ -16,12 +29,16 @@ networksetup -setnetworkserviceenabled Wi-Fi off
 
 
 #Setting power to sleep at 2 hours, sleep the display at 30 minutes, half dim at 15 mins of inactivity
-pmset sleep 120 disksleep 0 displaysleep 30 halfdim 15
+pmset sleep 120 disksleep 1 displaysleep 30 halfdim 15
 
 
 #Disabling Blueooth from nagging if keyboard/mouse are not found
 defaults write /Library/Preferences/com.apple.Bluetooth.plist BluetoothAutoSeekKeyboard 0
 defaults write /Library/Preferences/com.apple.Bluetooth.plist BluetoothAutoSeekPointingDevice 0
+
+
+#and because Mavericks/Yosemite are jerks
+sudo killall cfprefsd
 
 
 #Create directory to be used for admin data
@@ -91,6 +108,15 @@ defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/
 
 # Turn SSH on
 systemsetup -setremotelogin on
+# wipe the disabled launchd key in the ssh.plist on the target to allow launchctl to load it
+/usr/libexec/PlistBuddy -c "Delete Disabled" "/System/Library/LaunchDaemons/ssh.plist"
+#make the ssh group
+dscl . create /Groups/com.apple.access_ssh || exit 1
+dscl . create /Groups/com.apple.access_ssh realname "Remote Login ACL"
+dscl . create /Groups/com.apple.access_ssh gid 404
+#add our user to the ssh group
+dscl . -merge /Groups/com.apple.access_ssh GroupMembership adminlocal
+launchctl load /System/Library/LaunchDaemons/ssh.plist
 
 
 # Turn off Gatekeeper
@@ -100,6 +126,12 @@ spctl --master-disable
 #Enable Reduce Transparency for performance boost in Yosemite
 defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/com.apple.universalaccess.plist  reduceTransparency 1  
 
+
+## Kickstart ARD
+KICKSTRT="/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart"
+$KICKSTRT -configure -allowAccessFor -specifiedUsers
+sleep 1
+$KICKSTRT -activate -configure -users adminlocal -privs -all -access -on -restart -agent
 
 
 ###AM Section###
@@ -111,10 +143,6 @@ defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/
 
 #Check for packages
 /Library/Application\ Support/LANrev\ Agent/LANrev\ Agent.app/Contents/MacOS/LANrev\ Agent --SDCheck
-
-
-#and because Mavericks/Yosemite are jerks
-sudo killall cfprefsd
 
 
 # Since this is just a first-boot, make script self-destruct
