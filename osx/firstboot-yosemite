@@ -24,10 +24,6 @@ defaults write /Library/Preferences/com.apple.Bluetooth.plist BluetoothAutoSeekK
 defaults write /Library/Preferences/com.apple.Bluetooth.plist BluetoothAutoSeekPointingDevice 0
 
 
-#and because Mavericks/Yosemite are jerks
-sudo killall cfprefsd
-
-
 #Create directory to be used for admin data
 mkdir /Library/Admin/data
 
@@ -115,6 +111,10 @@ defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/
 
 #Check for packages
 /Library/Application\ Support/LANrev\ Agent/LANrev\ Agent.app/Contents/MacOS/LANrev\ Agent --SDCheck
+
+
+#and because Mavericks/Yosemite are jerks
+sudo killall cfprefsd
 
 
 # Since this is just a first-boot, make script self-destruct
