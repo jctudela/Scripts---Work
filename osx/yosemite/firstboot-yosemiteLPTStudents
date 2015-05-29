@@ -1,0 +1,53 @@
+#!/bin/sh
+
+###
+# First Boot Script for laptop program computers
+###
+
+
+#Set time zone
+/usr/sbin/systemsetup -settimezone America/Toronto
+/usr/sbin/systemsetup -setusingnetworktime on
+/usr/sbin/systemsetup -gettime
+/usr/sbin/systemsetup -gettimezone
+
+#Let it catch up
+sleep 10
+  
+#Enable Reduce Transparency for performance boost in Yosemite
+defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/com.apple.universalaccess.plist  reduceTransparency 1  
+
+#Repair Disk Permissions post imaging
+diskutil repairPermissions /
+
+#Remove AppleSetupDone
+rm /var/db/.AppleSetupDone
+
+#...and because Mavericks/Yosemite are jerks
+sudo killall cfprefsd
+
+#Now check if there are any unused scripts in /etc/deploystudio and try to execute them if so
+
+SCRIPTSDIR='/private/etc/deploystudio/scripts'
+
+if [[ -d "${SCRIPTSDIR}" && ! -L "${SCRIPTSDIR}" ]] ; then
+
+  cd $SCRIPTSDIR/$1
+
+  IFS="$(printf '\n\t')"   # Remove space.
+
+  #  Correct glob use:
+  #  Always use for-loop, prefix glob, check if exists file.
+  
+  for file in ./* ; do         # Use ./* ... NEVER bare *
+    if [ -e "$file" ] ; then   # Check whether file exists.
+     ./$file
+    fi
+  done
+
+else
+    echo $1 "is not a directory"
+    exit 2
+fi
+
+exit 0
