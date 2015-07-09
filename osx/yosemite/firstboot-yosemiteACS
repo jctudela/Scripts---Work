@@ -12,9 +12,9 @@
 /usr/sbin/systemsetup -gettimezone
 
 #Let it catch up
-sleep 10
+sleep 5
 
-# make FireWire networking inactive
+#Make FireWire networking inactive
 /usr/sbin/networksetup -setnetworkserviceenabled FireWire off
 
 
@@ -37,76 +37,7 @@ defaults write /Library/Preferences/com.apple.Bluetooth.plist BluetoothAutoSeekK
 defaults write /Library/Preferences/com.apple.Bluetooth.plist BluetoothAutoSeekPointingDevice 0
 
 
-#and because Mavericks/Yosemite are jerks
-sudo killall cfprefsd
-
-
-#Create directory to be used for admin data
-mkdir /Library/Admin/data
-
-
-#Write list of installed Applications to /Library/Admin/data
-ls /Applications/ > /Library/Admin/data/list.csv
-
-
-# Set the login window to name and password
-defaults write /Library/Preferences/com.apple.loginwindow SHOWFULLNAME -bool true
-
-
-# Sets the "Show scroll bars" setting (in System Preferences: General)
-# to "Always" in your Mac's default user template and for all existing users.
-# Checks the system default user template for the presence of 
-# the Library/Preferences directory. If the directory is not found, 
-# it is created and then the "Show scroll bars" setting (in System 
-# Preferences: General) is set to "Always".
-
-for USER_TEMPLATE in "/System/Library/User Template"/*
-  do
-     if [ ! -d "${USER_TEMPLATE}"/Library/Preferences ]
-      then
-        mkdir -p "${USER_TEMPLATE}"/Library/Preferences
-     fi
-     if [ ! -d "${USER_TEMPLATE}"/Library/Preferences/ByHost ]
-      then
-        mkdir -p "${USER_TEMPLATE}"/Library/Preferences/ByHost
-     fi
-     if [ -d "${USER_TEMPLATE}"/Library/Preferences/ByHost ]
-      then
-        defaults write "${USER_TEMPLATE}"/Library/Preferences/.GlobalPreferences AppleShowScrollBars -string Always
-     fi
-  done
-  
-  
-# Determine OS version and build version
-# as part of the following actions to 
-# disable the iCloud pop-up window
-osvers=$(sw_vers -productVersion | awk -F. '{print $2}')
-sw_vers=$(sw_vers -productVersion)
-
-# Checks first to see if the Mac is running 10.7.0 or higher. 
-# If so, the script checks the system default user template
-# for the presence of the Library/Preferences directory.
-# If the directory is not found, it is created and then the
-# iCloud pop-up settings are set to be disabled.
-if [[ ${osvers} -ge 7 ]]; then
-
- for USER_TEMPLATE in "/System/Library/User Template"/*
-  do
-    defaults write "${USER_TEMPLATE}"/Library/Preferences/com.apple.SetupAssistant DidSeeCloudSetup -bool TRUE
-    defaults write "${USER_TEMPLATE}"/Library/Preferences/com.apple.SetupAssistant GestureMovieSeen none
-    defaults write "${USER_TEMPLATE}"/Library/Preferences/com.apple.SetupAssistant LastSeenCloudProductVersion "${sw_vers}"
-  done
-  
-  
-# Turn off DS_Store file creation on network volumes
-defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/com.apple.desktopservices DSDontWriteNetworkStores true
-
-
-# Configure Finder to use Column View
-defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/com.apple.finder "AlwaysOpenWindowsInColumnView" -bool true
-
-
-# Turn SSH on
+#Turn SSH on
 systemsetup -setremotelogin on
 # wipe the disabled launchd key in the ssh.plist on the target to allow launchctl to load it
 /usr/libexec/PlistBuddy -c "Delete Disabled" "/System/Library/LaunchDaemons/ssh.plist"
@@ -118,32 +49,77 @@ dscl . create /Groups/com.apple.access_ssh gid 404
 dscl . -merge /Groups/com.apple.access_ssh GroupMembership adminlocal
 launchctl load /System/Library/LaunchDaemons/ssh.plist
 
+#Configure Finder to use Column View
+defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/com.apple.finder "AlwaysOpenWindowsInColumnView" -bool true
 
-# Turn off Gatekeeper
+#Disable annoying first time setup prompts from OS X
+defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/com.apple.SetupAssistant DidSeeCloudSetup -bool true
+defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/com.apple.SetupAssistant GestureMovieSeen none
+defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/com.apple.SetupAssistant LastSeenCloudProductVersion 10.10.0
+
+#Enable solid scrollbars
+defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/.GlobalPreferences AppleShowScrollBars -string Always
+
+#Turn off Gatekeeper
 spctl --master-disable 
   
   
 #Enable Reduce Transparency for performance boost in Yosemite
 defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/com.apple.universalaccess.plist  reduceTransparency 1  
 
+#Hide amagent account
+dscl . create /Users/amagent IsHidden 1
+mv /Users/amagent /var/amagent
+dscl . -create /Users/amagent NFSHomeDirectory /var/amagent
 
-## Kickstart ARD
+
+##Kickstart ARD
 KICKSTRT="/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart"
 $KICKSTRT -configure -allowAccessFor -specifiedUsers
 sleep 1
 $KICKSTRT -activate -configure -users adminlocal -privs -all -access -on -restart -agent
 
 
+#Set the login window to name and password
+defaults write /Library/Preferences/com.apple.loginwindow SHOWFULLNAME -bool true
+
+
+#Turn off DS_Store file creation on network volumes
+defaults write /System/Library/User\ Template/English.lproj/Library/Preferences/com.apple.desktopservices DSDontWriteNetworkStores true
+
+
 ###AM Section###
+
+#This will assist configuring AM agents beyond the very basic configuration included with the agent
+
+#Enable remote
+#defaults write /Library/Preferences/com.poleposition-sw.lanrev_agent.plist AbsoluteRemoteEnabled true
+
+#Specify password for remote
+#defaults write /Library/Preferences/com.poleposition-sw.lanrev_agent.plist AbsoluteRemotePassword 686D64AACB64A3CC8775639F308742BBB3C479B42CCFA14B
+
+#Specify port for remote
+#defaults write /Library/Preferences/com.poleposition-sw.lanrev_agent.plist AbsoluteRemotePort 5901
+
+#No user confirmation required for remote
+#defaults write /Library/Preferences/com.poleposition-sw.lanrev_agent.plist AbsoluteRemoteUserConfirmationRequired false
+
+#Check for Apple Software Updates
+#defaults write /Library/Preferences/com.poleposition-sw.lanrev_agent.plist CheckAppleSoftwarePatches true
+
+#Check for Third-party patches
+#defaults write /Library/Preferences/com.poleposition-sw.lanrev_agent.plist CheckThirdPartySoftwarePatches true
+
 #Send heartbeat
-/Library/Application\ Support/LANrev\ Agent/LANrev\ Agent.app/Contents/MacOS/LANrev\ Agent --SendHeartbeat
+#/Library/Application\ Support/LANrev\ Agent/LANrev\ Agent.app/Contents/MacOS/LANrev\ Agent --SendHeartbeat
 
 #Send inventory
-/Library/Application\ Support/LANrev\ Agent/LANrev\ Agent.app/Contents/MacOS/LANrev\ Agent --SendInventory
+#/Library/Application\ Support/LANrev\ Agent/LANrev\ Agent.app/Contents/MacOS/LANrev\ Agent --SendInventory
 
 #Check for packages
-/Library/Application\ Support/LANrev\ Agent/LANrev\ Agent.app/Contents/MacOS/LANrev\ Agent --SDCheck
+#/Library/Application\ Support/LANrev\ Agent/LANrev\ Agent.app/Contents/MacOS/LANrev\ Agent --SDCheck
 
+#and because Mavericks/Yosemite are jerks
+sudo killall cfprefsd
 
-# Since this is just a first-boot, make script self-destruct
-srm $0
+exit 0
