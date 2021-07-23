@@ -6,10 +6,10 @@
 defaults write /Library/Preferences/com.poleposition-sw.lanrev_agent.plist AbsoluteRemoteEnabled true
 
 #Specify password for remote
-defaults write /Library/Preferences/com.poleposition-sw.lanrev_agent.plist AbsoluteRemotePassword 11686D64AACB64A3CC8775639F308742BBB3C479B42CCFA14B
+defaults write /Library/Preferences/com.poleposition-sw.lanrev_agent.plist AbsoluteRemotePassword 11686D64AACB6775639F308742BBB3C479B42CCFA14B
 
 #Specify port for remote
-defaults write /Library/Preferences/com.poleposition-sw.lanrev_agent.plist AbsoluteRemotePort 5901
+defaults write /Library/Preferences/com.poleposition-sw.lanrev_agent.plist AbsoluteRemotePort (port#)
 
 #No user confirmation required for remote
 defaults write /Library/Preferences/com.poleposition-sw.lanrev_agent.plist AbsoluteRemoteUserConfirmationRequired false
